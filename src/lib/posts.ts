@@ -1,13 +1,13 @@
 import { db } from "@/db";
 import { posts, postCategories, type Post, type PostCategory } from "@/db/schema";
-import { seedPosts } from "@/content/bulletin.seed";
+import { seedPosts } from "@/content/bulletin-seed";
 import { and, desc, eq, sql } from "drizzle-orm";
 
 export const PAGE_SIZE = 6;
 
 let seededThisProcess = false;
 
-/** Seeds the bulletin from /src/content/bulletin.seed.ts if the table is empty. */
+/** Seeds the bulletin from /src/content/bulletin-seed.ts if the table is empty. */
 export async function ensureSeeded() {
   if (seededThisProcess) return;
   const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(posts);
