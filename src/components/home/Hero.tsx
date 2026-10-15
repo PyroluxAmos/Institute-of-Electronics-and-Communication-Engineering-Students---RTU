@@ -1,4 +1,5 @@
-import Image from "next/image";
+import { LogoImage } from "@/components/brand/LogoImage";
+import { SafeImage } from "@/components/ui/SafeImage";
 import { site } from "@/content/site";
 import { ButtonLink } from "@/components/ui/primitives";
 
@@ -7,16 +8,19 @@ const marquee = ["Transparency", "Academics", "Community", "Innovation", "Servic
 export function Hero() {
   return (
     <section className="silk grain relative -mt-18 overflow-hidden pt-18 text-white">
-      {/* silk texture overlay */}
-      <Image
+      {/* Replace public/brand/hero-texture.jpg to change the homepage background. */}
+      <SafeImage
         src={site.heroTexture}
         alt=""
-        fill
-        priority
         sizes="100vw"
-        className="pointer-events-none object-cover opacity-35 mix-blend-screen"
+        priority
+        hideOnError
+        className="pointer-events-none object-cover opacity-45 mix-blend-screen"
       />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-navy-950/40 via-transparent to-navy-950/70" />
+      {/* CSS layers remain as a readable fallback if the file is absent. */}
+      <div className="pointer-events-none absolute -left-24 top-0 h-[32rem] w-[42rem] rotate-12 rounded-[50%] bg-cyan-200/20 blur-3xl" />
+      <div className="pointer-events-none absolute -right-20 top-1/4 h-[28rem] w-[38rem] -rotate-12 rounded-[50%] bg-electric-400/20 blur-3xl" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-navy-950/20 via-transparent to-navy-950/70" />
 
       <div className="relative mx-auto grid w-full max-w-7xl items-center gap-12 px-5 pb-20 pt-16 sm:px-8 lg:grid-cols-[1.15fr_0.85fr] lg:pb-28 lg:pt-24">
         <div className="animate-rise">
@@ -64,7 +68,7 @@ export function Hero() {
             <div className="absolute -inset-6 rounded-full border border-white/20" />
             <div className="absolute -inset-12 rounded-full border border-white/10" />
             <div className="relative h-64 w-64 overflow-hidden rounded-full bg-white shadow-m4 ring-8 ring-white/20 sm:h-80 sm:w-80 lg:h-[22rem] lg:w-[22rem]">
-              <Image src={site.logo} alt={`${site.name} seal`} fill priority sizes="(min-width:1024px) 352px, 320px" className="object-cover" />
+              <LogoImage sizes="(min-width:1024px) 352px, 320px" priority />
             </div>
           </div>
         </div>
