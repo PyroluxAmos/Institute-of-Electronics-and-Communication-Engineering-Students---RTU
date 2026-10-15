@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+/* ────────────────────────────────────────────────
+   IECES – RTU  ·  Design tokens (Material-inspired)
+   Palette pulled from the blue-silk brand & seal.
+   ──────────────────────────────────────────────── */
+@theme {
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-display: "Sora", "Inter", "Segoe UI", system-ui, sans-serif;
+
+  --color-navy-950: #061a3a;
+  --color-navy-900: #0b2a5b;
+  --color-navy-800: #103877;
+  --color-navy-700: #164a99;
+  --color-electric-600: #1e88e5;
+  --color-electric-500: #2196f3;
+  --color-electric-400: #42a5f5;
+  --color-cyan-300: #4fc3f7;
+  --color-cyan-200: #81d4fa;
+  --color-cyan-100: #e1f5fe;
+  --color-cream-100: #f4eedc;
+  --color-cream-200: #e8dfc3;
+  --color-surface: #f6f8fc;
+  --color-surface-2: #eef2f9;
+
+  --shadow-m1: 0 1px 2px rgba(6, 26, 58, 0.08), 0 1px 3px rgba(6, 26, 58, 0.06);
+  --shadow-m2: 0 4px 12px rgba(6, 26, 58, 0.1), 0 2px 4px rgba(6, 26, 58, 0.06);
+  --shadow-m3: 0 12px 28px rgba(6, 26, 58, 0.14), 0 4px 8px rgba(6, 26, 58, 0.06);
+  --shadow-m4: 0 24px 60px rgba(6, 26, 58, 0.18);
+  --shadow-glow: 0 0 0 4px rgba(79, 195, 247, 0.25);
+
+  --radius-m: 1rem;
+  --radius-xl2: 1.75rem;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-surface);
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+/* Utility: material ripple-ish press */
+.pressable {
+  transition: transform 160ms cubic-bezier(0.2, 0, 0, 1), box-shadow 160ms cubic-bezier(0.2, 0, 0, 1);
+}
+.pressable:active {
+  transform: scale(0.98);
+}
+
+/* Blue-silk surface used by hero & banners */
+.silk {
+  background:
+    radial-gradient(1200px 500px at 10% 0%, rgba(129, 212, 250, 0.55), transparent 60%),
+    radial-gradient(900px 500px at 90% 100%, rgba(33, 150, 243, 0.55), transparent 55%),
+    linear-gradient(135deg, #061a3a 0%, #0b2a5b 35%, #1565c0 70%, #4fc3f7 115%);
+}
+
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.08;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* Hide scrollbars for horizontal chips */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Motion */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-rise {
+  animation: rise 600ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-float,
+  .animate-marquee {
+    animation: none;
+  }
+}
+
+/* Book spine 3D */
+.book {
+  transform-style: preserve-3d;
+  transition: transform 300ms cubic-bezier(0.2, 0, 0, 1);
+}
+.group:hover .book {
+  transform: rotateY(-18deg) translateX(4px);
+}
