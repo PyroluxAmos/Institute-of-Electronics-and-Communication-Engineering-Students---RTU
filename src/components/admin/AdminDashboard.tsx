@@ -1,5 +1,6 @@
 "use client";
 
+import { upload } from "@vercel/blob/client";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import type { Grievance, GrievanceStatus, Post } from "@/db/schema";
@@ -17,34 +18,95 @@ export function AdminDashboard({ posts, grievances }: { posts: Post[]; grievance
   const [tab, setTab] = useState<"posts" | "grievances">("posts");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [uploadPercent, setUploadPercent] = useState(0);
+  const [imageFileName, setImageFileName] = useState<string | null>(null);
+  const [attachmentFileName, setAttachmentFileName] = useState<string | null>(null);
+
+  async function uploadOfficerFile(file: File, kind: "image" | "attachment") {
+    const safeName = file.name
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]+/g, "-")
+      .replace(/^-+|-+$/g, "") || `${kind}-${Date.now()}`;
+    const folder = kind === "image" ? "bulletin/images" : "bulletin/attachments";
+
+    setUploadStatus(kind === "image" ? "Uploading pubmat…" : "Uploading attachment…");
+    setUploadPercent(0);
+
+    return upload(`${folder}/${safeName}`, file, {
+      access: "public",
+      handleUploadUrl: "/api/admin/uploads",
+      clientPayload: JSON.stringify({ kind }),
+      multipart: file.size > 4 * 1024 * 1024,
+      onUploadProgress: ({ percentage }) => setUploadPercent(Math.round(percentage)),
+    });
+  }
 
   async function createPost(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const imageFile = fd.get("imageFile");
+    const attachmentFile = fd.get("attachmentFile");
+
     setBusy(true);
     setMsg(null);
-    const res = await fetch("/api/posts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: fd.get("title"),
-        body: fd.get("body"),
-        category: fd.get("category"),
-        imageUrl: fd.get("imageUrl"),
-        attachmentUrl: fd.get("attachmentUrl"),
-        attachmentLabel: fd.get("attachmentLabel"),
-        author: fd.get("author"),
-        pinned: fd.get("pinned") === "on",
-      }),
-    });
-    setBusy(false);
-    if (res.ok) {
-      e.currentTarget.reset();
-      setMsg("Post published ✔");
+    setUploadStatus(null);
+    setUploadPercent(0);
+
+    try {
+      let imageUrl = String(fd.get("imageUrl") ?? "").trim();
+      let attachmentUrl = String(fd.get("attachmentUrl") ?? "").trim();
+      let attachmentLabel = String(fd.get("attachmentLabel") ?? "").trim();
+
+      if (imageFile instanceof File && imageFile.size > 0) {
+        const imageBlob = await uploadOfficerFile(imageFile, "image");
+        imageUrl = imageBlob.url;
+      }
+
+      if (attachmentFile instanceof File && attachmentFile.size > 0) {
+        const attachmentBlob = await uploadOfficerFile(attachmentFile, "attachment");
+        attachmentUrl = attachmentBlob.url;
+        if (!attachmentLabel) attachmentLabel = attachmentFile.name;
+      }
+
+      setUploadStatus("Publishing post…");
+      setUploadPercent(100);
+
+      const res = await fetch("/api/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: fd.get("title"),
+          body: fd.get("body"),
+          category: fd.get("category"),
+          imageUrl,
+          attachmentUrl,
+          attachmentLabel,
+          author: fd.get("author"),
+          pinned: fd.get("pinned") === "on",
+        }),
+      });
+
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(data.error || "Failed to publish.");
+
+      form.reset();
+      setImageFileName(null);
+      setAttachmentFileName(null);
+      setMsg("Post and files published successfully ✔");
       router.refresh();
-    } else {
-      const d = (await res.json()) as { error?: string };
-      setMsg(d.error || "Failed to publish.");
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "Upload failed.";
+      setMsg(
+        detail.includes("BLOB") || detail.includes("token")
+          ? "File storage is not connected yet. Connect a Vercel Blob store to this project, then try again."
+          : detail,
+      );
+    } finally {
+      setBusy(false);
+      setUploadStatus(null);
+      setUploadPercent(0);
     }
   }
 
@@ -100,20 +162,77 @@ export function AdminDashboard({ posts, grievances }: { posts: Post[]; grievance
               ))}
             </select>
             <textarea name="body" required rows={6} placeholder="Write the post… (blank line = new paragraph)" className={cn(inputCls, "resize-y")} />
-            <input name="imageUrl" placeholder="Image URL — e.g. /materials/bulletin/my-pubmat.jpg" className={inputCls} />
-            <input name="attachmentUrl" placeholder="Attachment URL — e.g. /materials/records/report.pdf" className={inputCls} />
-            <input name="attachmentLabel" placeholder="Attachment label — e.g. Download PDF" className={inputCls} />
+
+            <fieldset className="grid gap-2 rounded-2xl bg-cyan-100/60 p-4 ring-1 ring-cyan-200">
+              <legend className="px-1 text-xs font-extrabold uppercase tracking-[0.18em] text-electric-600">Pubmat / post image</legend>
+              <label className="pressable flex cursor-pointer items-center gap-3 rounded-xl bg-white p-3 text-sm font-extrabold text-navy-950 shadow-m1 ring-1 ring-navy-900/5 hover:bg-cyan-50">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-navy-900 text-xl text-white">🖼️</span>
+                <span className="min-w-0">
+                  <span className="block">Choose pubmat from device</span>
+                  <span className="block text-xs font-semibold text-slate-500">JPG, PNG, WebP or GIF · maximum 10 MB</span>
+                </span>
+                <input
+                  name="imageFile"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="sr-only"
+                  onChange={(event) => setImageFileName(event.target.files?.[0]?.name ?? null)}
+                />
+              </label>
+              {imageFileName && <p className="break-all text-xs font-bold text-emerald-700">✓ Selected: {imageFileName}</p>}
+            </fieldset>
+
+            <fieldset className="grid gap-2 rounded-2xl bg-surface-2 p-4 ring-1 ring-navy-900/5">
+              <legend className="px-1 text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">Optional document attachment</legend>
+              <label className="pressable flex cursor-pointer items-center gap-3 rounded-xl bg-white p-3 text-sm font-extrabold text-navy-950 shadow-m1 ring-1 ring-navy-900/5 hover:bg-cyan-50">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-electric-600 text-xl text-white">📎</span>
+                <span className="min-w-0">
+                  <span className="block">Choose document from device</span>
+                  <span className="block text-xs font-semibold text-slate-500">PDF, Word, Excel, PowerPoint, ZIP or TXT · maximum 25 MB</span>
+                </span>
+                <input
+                  name="attachmentFile"
+                  type="file"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt"
+                  className="sr-only"
+                  onChange={(event) => setAttachmentFileName(event.target.files?.[0]?.name ?? null)}
+                />
+              </label>
+              {attachmentFileName && <p className="break-all text-xs font-bold text-emerald-700">✓ Selected: {attachmentFileName}</p>}
+              <input name="attachmentLabel" placeholder="Download button label (optional)" className={inputCls} />
+            </fieldset>
+
+            <details className="rounded-2xl bg-surface-2 p-3 text-sm">
+              <summary className="cursor-pointer font-extrabold text-navy-900">Advanced: use an existing URL instead</summary>
+              <div className="mt-3 grid gap-2">
+                <input name="imageUrl" type="url" placeholder="Existing image URL (optional)" className={inputCls} />
+                <input name="attachmentUrl" type="url" placeholder="Existing attachment URL (optional)" className={inputCls} />
+                <p className="text-xs text-slate-500">A selected device file takes priority over an existing URL.</p>
+              </div>
+            </details>
+
             <input name="author" placeholder="Author (default: IECES – RTU)" className={inputCls} />
             <label className="flex items-center gap-2 text-sm font-bold text-navy-950">
               <input type="checkbox" name="pinned" className="h-4 w-4 accent-navy-900" /> Pin to top
             </label>
+
+            {uploadStatus && (
+              <div className="rounded-2xl bg-navy-950 p-3 text-white">
+                <div className="flex items-center justify-between text-xs font-extrabold uppercase tracking-wider">
+                  <span>{uploadStatus}</span>
+                  <span className="text-cyan-300">{uploadPercent}%</span>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/15">
+                  <div className="h-full rounded-full bg-cyan-300 transition-[width]" style={{ width: `${uploadPercent}%` }} />
+                </div>
+              </div>
+            )}
+
             <Button type="submit" disabled={busy}>
-              {busy ? "Publishing…" : "Publish"}
+              {busy ? uploadStatus || "Working…" : "Upload files & publish"}
             </Button>
-            {msg && <p className="text-sm font-bold text-electric-600">{msg}</p>}
-            <p className="text-xs text-slate-500">
-              Tip: drop images into <code className="font-mono">public/materials/bulletin/</code>, commit, and reference them as <code className="font-mono">/materials/bulletin/file.jpg</code>.
-            </p>
+            {msg && <p className={cn("rounded-xl px-3 py-2 text-sm font-bold", msg.includes("✔") ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700")}>{msg}</p>}
+            <p className="text-xs text-slate-500">Files are stored securely in Vercel Blob and linked to the post automatically—no GitHub upload required.</p>
           </form>
 
           <ul className="grid gap-3">
