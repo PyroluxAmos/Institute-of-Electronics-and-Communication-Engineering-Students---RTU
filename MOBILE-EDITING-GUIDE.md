@@ -63,6 +63,28 @@ Recommended homepage background:
 
 The website adds a dark readability overlay automatically.
 
+### Homepage background animation
+
+The hero background uses a slow CSS pan-and-zoom effect; the JPG itself remains unchanged. Animation settings live in `src/app/globals.css` under:
+
+```text
+hero-texture-drift
+hero-light-drift-a
+hero-light-drift-b
+```
+
+The main texture speed is controlled by this duration:
+
+```css
+animation: hero-texture-drift 22s ease-in-out infinite;
+```
+
+- Increase `22s` to `30s` for slower motion.
+- Decrease it to `15s` for faster motion.
+- Use `animation: none;` to disable it.
+
+Avoid durations below 12 seconds because they can feel distracting. Motion automatically stops when a visitor enables **Reduce Motion** in their device accessibility settings.
+
 ### Exact capitalization matters
 
 Vercel runs on Linux, where these are different files:
@@ -195,7 +217,45 @@ For quick routine changes, direct commits to `main` are acceptable. For major re
 
 ---
 
-## G. Important limitations
+## G. Mobile layout troubleshooting
+
+If the whole page can be dragged sideways or appears wider than the phone:
+
+1. Confirm GitHub contains the latest `src/app/page.tsx` and `src/app/globals.css`.
+2. Do not paste very long text without spaces into GPOA titles, committee names, links, or post bodies.
+3. Check Vercel's latest deployment is **Ready** and corresponds to your newest commit.
+4. Open the site in an incognito tab to avoid an old cached deployment.
+
+The homepage GPOA cards use a two-column mobile grid. On phones, the status badge moves below the activity text; at the `sm` breakpoint it returns to the right side. The relevant classes are in the `GPOA + About` section of `src/app/page.tsx`. The global viewport safeguard is in `src/app/globals.css` under `html` and `body`.
+
+## H. Direct pubmat and document uploads from `/admin`
+
+The officer dashboard supports direct device uploads through **Vercel Blob**. Images and documents uploaded here do not need to be added to GitHub.
+
+### One-time Vercel setup (project owner)
+
+1. Open the project in the Vercel dashboard.
+2. Open **Storage** (or **Integrations / Marketplace** if Storage is not shown).
+3. Select **Blob** and choose **Create Store**.
+4. Give it a name such as `ieces-media` and select **Public** access so published images and downloads can be opened by students.
+5. Connect the store to this same Vercel project and to Production, Preview, and Development.
+6. Confirm Vercel added `BLOB_READ_WRITE_TOKEN` under **Settings → Environment Variables**. Never paste this token into GitHub.
+7. Redeploy the newest GitHub commit after connecting the store.
+
+### Officer posting workflow
+
+1. Sign in at `/admin/login`.
+2. Open **Posts → New post**.
+3. Enter the title, category, and post text.
+4. Tap **Choose pubmat from device** and select a JPG, PNG, WebP, or GIF (maximum 10 MB).
+5. Optionally select a PDF, Word, Excel, PowerPoint, ZIP, or TXT attachment (maximum 25 MB).
+6. Optionally enter the attachment button label.
+7. Tap **Upload files & publish** and keep the page open while the progress bar runs.
+8. The dashboard uploads the files to Vercel Blob, saves their URLs in PostgreSQL, and publishes the post automatically.
+
+Only logged-in officers can receive upload authorization. Deleting a bulletin post currently removes the database post but does not delete its Blob files; storage can be reviewed from Vercel → Storage → Blob.
+
+## I. Important limitations
 
 - GitHub is suitable for images and documents that change occasionally.
 - Avoid files larger than 25 MB in GitHub. Use Google Drive, Cloudinary, or Vercel Blob for large archives/videos.
