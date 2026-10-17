@@ -261,4 +261,4 @@ Only logged-in officers can receive upload authorization. Deleting a bulletin po
 - Avoid files larger than 25 MB in GitHub. Use Google Drive, Cloudinary, or Vercel Blob for large archives/videos.
 - Do not upload `.env`, passwords, database URLs, student private data, or grievance exports.
 - Compress images before uploading for faster mobile performance.
-- Never delete `src`, `package.json`, `next.config.ts`, or database files when replacing assets.
+- Never delete `src`, `package.json`, `next.config.ts`, or database files when replacing assets. ✍🏻
