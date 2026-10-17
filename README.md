@@ -5,6 +5,8 @@
 
 Built with **Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Drizzle ORM · PostgreSQL**. Optimized for **GitHub → Vercel** deployment.
 
+📱 Maintaining the site from Android or iPhone? Read **[MOBILE-EDITING-GUIDE.md](./MOBILE-EDITING-GUIDE.md)** for exact upload, replacement, preview, and troubleshooting steps.
+
 ---
 
 ## ✨ Features
@@ -19,7 +21,7 @@ Built with **Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Drizzle
 | Design Materials | `/library/designs` | Brand kit, logo pack, templates, photo archive |
 | GPOA Calendar | `/calendar` | Trello-style board (Planned / Ongoing / Accomplished) + month calendar view · activity detail modal · optional Trello/Google Calendar embed |
 | Links & Contact | `/links` | Community chats, official pages, forms, useful links, contact info, executive board |
-| Officer Dashboard | `/admin` | Password-protected: publish/pin/delete posts, triage grievances |
+| Officer Dashboard | `/admin` | Password-protected: directly upload pubmats/documents, publish/pin/delete posts, triage grievances |
 
 Also: SEO metadata, Open Graph, `sitemap.xml`, `robots.txt`, `/api/health`, 404 page, responsive Material-inspired UI.
 
@@ -41,7 +43,7 @@ Also: SEO metadata, Open Graph, `sitemap.xml`, `robots.txt`, `/api/health`, 404 
 │   │   ├── library.ts         ← academicShelf / recordsShelf / designsShelf entries
 │   │   ├── gpoa.ts            ← GPOA activities (board + calendar), Trello embed URL
 │   │   ├── links.ts           ← community chats, official pages, forms, resources
-│   │   └── bulletin.seed.ts   ← first-run posts (only used when the DB is empty)
+│   │   └── bulletin-seed.ts   ← first-run posts (only used when the DB is empty)
 │   ├── app/                   ← routes (App Router)
 │   │   ├── page.tsx           ← Home
 │   │   ├── bulletin/          ← feed + [slug]
@@ -61,11 +63,15 @@ Also: SEO metadata, Open Graph, `sitemap.xml`, `robots.txt`, `/api/health`, 404 
 
 ### Updating content (the 3 common tasks)
 
-1. **Post an announcement / pubmat / financial report** → go to `/admin`, log in, fill the form. For images, drop the file in `public/materials/bulletin/` first, push, then use `/materials/bulletin/<file>.jpg` as the image URL (or paste any external image URL).
+1. **Post an announcement / pubmat / financial report** → go to `/admin`, log in, choose the image/document directly from your device, and publish. The files upload to Vercel Blob automatically. Existing URLs remain available under the form's Advanced section.
 2. **Add a library item** → drop the file in `public/materials/<library|records|designs>/`, add an object to the matching array in `src/content/library.ts`.
 3. **Update the GPOA** → edit `src/content/gpoa.ts` (change `status` to move cards between columns).
 
 Commit → push → Vercel redeploys in ~1 minute.
+
+### Images missing after a phone upload?
+
+Open the expected asset directly at `https://your-site.vercel.app/brand/logo.png`. A 404 means the file is not present in GitHub under that exact path and letter casing. GitHub/Vercel paths are case-sensitive (`logo.png` and `Logo.PNG` differ). Keep the official source image unedited and named exactly `logo.png`; upload it with GitHub's **Add file → Upload files**, verify that GitHub previews it, then redeploy. Missing pubmats and covers show a branded emergency fallback instead of a broken-image icon.
 
 ---
 
@@ -78,7 +84,7 @@ npx drizzle-kit push            # creates the tables
 npm run dev                     # http://localhost:3000
 ```
 
-The bulletin auto-seeds from `src/content/bulletin.seed.ts` the first time it loads with an empty `posts` table.
+The bulletin auto-seeds from `src/content/bulletin-seed.ts` the first time it loads with an empty `posts` table.
 
 ---
 
@@ -91,12 +97,13 @@ The bulletin auto-seeds from `src/content/bulletin.seed.ts` the first time it lo
    - `DATABASE_URL` = your Postgres connection string (append `?sslmode=require` for Neon/Supabase)
    - `ADMIN_PASSWORD` = a strong password for `/admin`
    - `NEXT_PUBLIC_SITE_URL` = `https://<your-project>.vercel.app` (used by the QR code)
-5. Deploy. After the first deploy run the schema push once from your machine:
+5. In Vercel → **Storage**, create a **Public Blob** store and connect it to this project. Vercel automatically adds `BLOB_READ_WRITE_TOKEN`; never commit that token to GitHub.
+6. Deploy. After the first deploy run the schema push once from your machine:
    ```bash
    DATABASE_URL="<prod connection string>" npx drizzle-kit push
    ```
    (or add `"postinstall": "drizzle-kit push"` if you prefer automatic pushes).
-6. Open `/admin/login`, sign in, and start posting.
+7. Open `/admin/login`, sign in, choose files from your device, and start posting.
 
 > **Custom domain:** Vercel → Settings → Domains. Update `NEXT_PUBLIC_SITE_URL` afterwards so the grievance QR points to the new domain.
 
@@ -105,6 +112,7 @@ The bulletin auto-seeds from `src/content/bulletin.seed.ts` the first time it lo
 ## 🔐 Security notes
 
 - Admin session = HMAC-signed, HttpOnly cookie (7 days). No third-party auth needed.
+- Blob upload tokens are short-lived, officer-authenticated, path-scoped, MIME-restricted, and size-limited.
 - Grievance endpoint has validation + honeypot. Anonymous submissions never store identity fields.
 - `.env` is git-ignored. Only `NEXT_PUBLIC_*` variables reach the browser.
 
